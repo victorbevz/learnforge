@@ -10,6 +10,7 @@ from app.db.base import Base
 from app.modules.auth.models import User
 from app.modules.courses.models import Course
 from app.modules.topics.models import Topic
+from app.modules.lessons.models import Lesson
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
