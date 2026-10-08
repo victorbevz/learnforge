@@ -1,13 +1,13 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response
+from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
 
 from app.db.session import get_db
 from app.modules.courses.dependencies import OwnedCourse
 from app.modules.topics import service
-from app.modules.topics.models import Topic
 from app.modules.topics.schemas import TopicCreate, TopicRead, TopicUpdate
+from app.modules.topics.dependencies import OwnedTopic
 
 
 router = APIRouter(
@@ -16,24 +16,6 @@ router = APIRouter(
 )
 
 DatabaseSession = Annotated[Session, Depends(get_db)]
-
-
-def get_owned_topic(
-    topic_id: Annotated[int, Path(gt=0, le=2147483647)],
-    course: OwnedCourse,
-    db: DatabaseSession,
-) -> Topic:
-    """Load a topic from a course owned by the current user."""
-    topic = service.find_topic(db, topic_id, course.id)
-
-    if topic is None:
-        raise HTTPException(status_code=404, detail="Topic not found")
-
-    return topic
-
-
-OwnedTopic = Annotated[Topic, Depends(get_owned_topic)]
-
 
 @router.post("", response_model=TopicRead, status_code=201)
 def create_topic(
