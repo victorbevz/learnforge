@@ -7,32 +7,13 @@ from app.core.dependencies import get_current_user
 from app.db.session import get_db
 from app.modules.auth.models import User
 from app.modules.courses import service
-from app.modules.courses.models import Course
 from app.modules.courses.schemas import CourseCreate, CourseRead, CourseUpdate
-
+from app.modules.courses.dependencies import OwnedCourse
 
 router = APIRouter(prefix="/courses", tags=["Courses"])
 
 DatabaseSession = Annotated[Session, Depends(get_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
-
-
-def get_owned_course(
-    course_id: Annotated[int, Path(gt=0, le=2147483647)],
-    db: DatabaseSession,
-    user: CurrentUser,
-) -> Course:
-    """Load a course accessible to the authenticated user."""
-    course = service.find_course(db, course_id, user.id)
-
-    if course is None:
-        raise HTTPException(status_code=404, detail="Course not found")
-
-    return course
-
-
-OwnedCourse = Annotated[Course, Depends(get_owned_course)]
-
 
 @router.post("", response_model=CourseRead, status_code=201)
 def create_course(
