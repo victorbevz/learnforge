@@ -8,6 +8,10 @@ from app.modules.lessons import service
 from app.modules.lessons.models import Lesson
 from app.modules.lessons.schemas import LessonCreate, LessonRead, LessonUpdate
 from app.modules.topics.dependencies import OwnedTopic
+from app.core.dependencies import get_current_user
+from app.modules.auth.models import User
+from app.modules.lessons import progress_service
+from app.modules.lessons.progress_schemas import LessonProgressRead
 
 
 router = APIRouter(
@@ -80,3 +84,44 @@ def delete_lesson(
     """Delete a lesson from the user's topic."""
     service.delete_lesson(db, lesson)
     return Response(status_code=204)
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+@router.get(
+    "/{lesson_id}/progress",
+    response_model=LessonProgressRead,
+)
+def get_lesson_progress(
+    lesson: OwnedLesson,
+    user: CurrentUser,
+    db: DatabaseSession,
+):
+    """Return the current user's lesson progress."""
+    return progress_service.get_progress(db, user.id, lesson.id)
+
+
+@router.put(
+    "/{lesson_id}/progress",
+    response_model=LessonProgressRead,
+)
+def complete_lesson(
+    lesson: OwnedLesson,
+    user: CurrentUser,
+    db: DatabaseSession,
+):
+    """Mark the lesson as completed."""
+    return progress_service.complete_lesson(db, user.id, lesson.id)
+
+
+@router.delete(
+    "/{lesson_id}/progress",
+    response_model=LessonProgressRead,
+)
+def reset_lesson_progress(
+    lesson: OwnedLesson,
+    user: CurrentUser,
+    db: DatabaseSession,
+):
+    """Remove the lesson completion mark."""
+    return progress_service.reset_progress(db, user.id, lesson.id)
