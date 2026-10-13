@@ -33,18 +33,21 @@ export default function RegisterPage() {
         body: JSON.stringify({ email, password }),
       });
 
-      if (!response.ok) {
-        const data = await response.json();
+    if (!response.ok) {
+      const data: unknown = await response.json().catch(() => null);
 
-        setError(
+      setError(
+        typeof data === "object" &&
+          data !== null &&
+          "detail" in data &&
           typeof data.detail === "string"
-            ? data.detail
-            : "Unable to create your account",
-        );
-        return;
-      }
+          ? data.detail
+          : "Unable to create your account",
+      );
+      return;
+    }
 
-      router.replace("/login?registered=1");
+      router.replace("/login");
     } catch {
       setError("Unable to connect to the server");
     } finally {
