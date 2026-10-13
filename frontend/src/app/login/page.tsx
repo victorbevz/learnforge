@@ -26,16 +26,19 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password }),
       });
 
-      if (!response.ok) {
-        const data = await response.json();
+    if (!response.ok) {
+      const data: unknown = await response.json().catch(() => null);
 
-        setError(
+      setError(
+        typeof data === "object" &&
+          data !== null &&
+          "detail" in data &&
           typeof data.detail === "string"
-            ? data.detail
-            : "Unable to sign in",
-        );
-        return;
-      }
+          ? data.detail
+          : "Unable to sign in",
+      );
+      return;
+    }
 
       router.replace("/");
       router.refresh();

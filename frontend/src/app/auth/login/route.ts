@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
-  if (request.headers.get("origin") !== request.nextUrl.origin) {
+  const appOrigin = process.env.APP_ORIGIN ?? "http://localhost:3000";
+
+  if (request.headers.get("origin") !== appOrigin) {
     return NextResponse.json(
       { detail: "Invalid request origin" },
       { status: 403 },
