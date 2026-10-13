@@ -41,8 +41,6 @@ services:
   frontend:
     build:
       context: ./frontend
-    environment:
-      API_URL: http://backend:8000
     ports:
       - "127.0.0.1:3000:3000"
     volumes:
@@ -51,6 +49,9 @@ services:
       - ./frontend/next.config.ts:/app/next.config.ts
     depends_on:
       - backend
+    environment:
+      API_URL: http://backend:8000
+      APP_ORIGIN: http://localhost:3000
 
 volumes:
   postgres_data:
