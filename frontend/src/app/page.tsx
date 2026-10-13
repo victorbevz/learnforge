@@ -1,8 +1,9 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import CreateCourseForm from "@/components/create-course-form";
 import LogoutButton from "@/components/logout-button";
 import { apiFetch } from "@/lib/api";
-import CreateCourseForm from "@/components/create-course-form";
 
 type User = {
   id: number;
@@ -16,14 +17,36 @@ type Course = {
   description: string | null;
 };
 
-export default async function HomePage() {
+const PAGE_SIZE = 12;
+
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string | string[] }>;
+}) {
+  const params = await searchParams;
+  const rawPage = params.page;
+
+  const page = rawPage === undefined ? 1 : Number(rawPage);
+
+  if (
+    Array.isArray(rawPage) ||
+    !Number.isSafeInteger(page) ||
+    page < 1 ||
+    page > 100_000
+  ) {
+    redirect("/");
+  }
+
+  const offset = (page - 1) * PAGE_SIZE;
+
   let userResponse: Response;
   let coursesResponse: Response;
 
   try {
     [userResponse, coursesResponse] = await Promise.all([
       apiFetch("/auth/me"),
-      apiFetch("/courses?limit=50"),
+      apiFetch(`/courses?limit=${PAGE_SIZE + 1}&offset=${offset}`),
     ]);
   } catch {
     return <ConnectionError />;
@@ -46,6 +69,13 @@ export default async function HomePage() {
   } catch {
     return <ConnectionError />;
   }
+
+  if (courses.length === 0 && page > 1) {
+    redirect("/");
+  }
+
+  const hasNextPage = courses.length > PAGE_SIZE;
+  const visibleCourses = courses.slice(0, PAGE_SIZE);
 
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-12 text-slate-100">
@@ -70,13 +100,13 @@ export default async function HomePage() {
 
           <LogoutButton />
         </header>
-        
+
         <CreateCourseForm />
 
         <section className="mt-12">
           <h2 className="text-2xl font-semibold">Your courses</h2>
 
-          {courses.length === 0 ? (
+          {visibleCourses.length === 0 ? (
             <div className="mt-6 rounded-2xl border border-dashed border-slate-700 p-10 text-center">
               <h3 className="text-lg font-semibold">No courses yet</h3>
               <p className="mt-2 text-slate-400">
@@ -85,7 +115,7 @@ export default async function HomePage() {
             </div>
           ) : (
             <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {courses.map((course) => (
+              {visibleCourses.map((course) => (
                 <article
                   key={course.id}
                   className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900 p-6"
@@ -102,10 +132,37 @@ export default async function HomePage() {
             </div>
           )}
 
-          {courses.length === 50 && (
-            <p className="mt-4 text-sm text-slate-400">
-              Showing the first 50 courses.
-            </p>
+          {(page > 1 || hasNextPage) && (
+            <nav
+              aria-label="Course pagination"
+              className="mt-6 flex items-center justify-between gap-4"
+            >
+              {page > 1 ? (
+                <Link
+                  href={page === 2 ? "/" : `/?page=${page - 1}`}
+                  className="rounded-lg border border-slate-700 px-4 py-2 hover:bg-slate-800"
+                >
+                  Previous
+                </Link>
+              ) : (
+                <span />
+              )}
+
+              <span className="text-sm text-slate-400">
+                Page {page}
+              </span>
+
+              {hasNextPage ? (
+                <Link
+                  href={`/?page=${page + 1}`}
+                  className="rounded-lg border border-slate-700 px-4 py-2 hover:bg-slate-800"
+                >
+                  Next
+                </Link>
+              ) : (
+                <span />
+              )}
+            </nav>
           )}
         </section>
       </section>

@@ -48,6 +48,7 @@ export default function CreateCourseForm() {
       }
 
       form.reset();
+      router.replace("/");
       router.refresh();
     } catch {
       setError("Unable to connect to the server");
