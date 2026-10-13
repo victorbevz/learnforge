@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAllowedOrigin } from "@/lib/origin";
 
 export async function POST(request: NextRequest) {
-  const appOrigin = process.env.APP_ORIGIN ?? "http://localhost:3000";
-
-  if (request.headers.get("origin") !== appOrigin) {
+  if (!isAllowedOrigin(request.headers.get("origin"))) {
     return NextResponse.json(
       { detail: "Invalid request origin" },
       { status: 403 },
