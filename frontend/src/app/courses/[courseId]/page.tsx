@@ -132,15 +132,16 @@ export default async function CoursePage({
           ) : (
             <div className="mt-6 space-y-4">
               {visibleTopics.map((topic) => (
-                <article
-                  key={topic.id}
-                  className="rounded-2xl border border-slate-800 bg-slate-900 p-6"
+                <Link
+                    key={topic.id}
+                    href={`/courses/${course.id}/topics/${topic.id}`}
+                    className="block rounded-2xl border border-slate-800 bg-slate-900 p-6 transition hover:border-indigo-400 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-indigo-400"
                 >
-                  <h3 className="break-words text-lg font-semibold">
+                    <h3 className="break-words text-lg font-semibold">
                     {topic.title}
-                  </h3>
-                </article>
-              ))}
+                    </h3>
+                </Link>
+                ))}
             </div>
           )}
 
