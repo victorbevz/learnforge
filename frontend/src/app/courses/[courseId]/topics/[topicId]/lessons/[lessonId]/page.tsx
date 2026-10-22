@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import LessonProgressButton from "@/components/lesson-progress-button";
 import { apiFetch } from "@/lib/api";
+import LessonManagement from "@/components/lesson-management";
 
 type Lesson = {
   id: number;
@@ -127,7 +128,13 @@ export default async function LessonPage({ params }: PageProps) {
             isCompleted={progress.is_completed}
           />
         </header>
-
+        <LessonManagement
+            lessonPath={lessonPath}
+            topicPath={topicPath}
+            title={lesson.title}
+            content={lesson.content}
+            position={lesson.position}
+        />
         <article className="mt-8 rounded-2xl border border-slate-800 bg-slate-900 p-6 sm:p-8">
           {lesson.content ? (
             <p className="whitespace-pre-wrap break-words leading-8 text-slate-300">
