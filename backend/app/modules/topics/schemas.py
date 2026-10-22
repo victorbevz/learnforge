@@ -39,3 +39,9 @@ class TopicRead(BaseModel):
     position: int
 
     model_config = ConfigDict(from_attributes=True)
+
+class TopicProgressRead(BaseModel):
+    topic_id: int
+    total_lessons: int
+    completed_lessons: int
+    completion_percent: float

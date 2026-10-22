@@ -33,3 +33,9 @@ class CourseRead(BaseModel):
     description: str | None
 
     model_config = ConfigDict(from_attributes=True)
+
+class CourseProgressRead(BaseModel):
+    course_id: int
+    total_lessons: int
+    completed_lessons: int
+    completion_percent: float

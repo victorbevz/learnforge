@@ -1,9 +1,13 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.modules.courses.models import Course
 from app.modules.courses.schemas import CourseCreate, CourseUpdate
 
+from app.modules.courses.schemas import CourseProgressRead
+from app.modules.lessons.lesson_progress import LessonProgress
+from app.modules.lessons.models import Lesson
+from app.modules.topics.models import Topic
 
 def create_course(
     db: Session,
@@ -71,3 +75,39 @@ def delete_course(db: Session, course: Course) -> None:
     """Delete the supplied course."""
     db.delete(course)
     db.commit()
+
+def get_course_progress(
+    db: Session,
+    course_id: int,
+    user_id: int,
+) -> CourseProgressRead:
+    """Count all lessons and the user's completed lessons in a course."""
+    query = (
+        select(
+            func.count(Lesson.id).label("total_lessons"),
+            func.count(LessonProgress.id).label("completed_lessons"),
+        )
+        .select_from(Lesson)
+        .join(Topic, Topic.id == Lesson.topic_id)
+        .outerjoin(
+            LessonProgress,
+            (LessonProgress.lesson_id == Lesson.id)
+            & (LessonProgress.user_id == user_id),
+        )
+        .where(Topic.course_id == course_id)
+    )
+
+    total_lessons, completed_lessons = db.execute(query).one()
+
+    completion_percent = (
+        round(completed_lessons / total_lessons * 100, 1)
+        if total_lessons > 0
+        else 0.0
+    )
+
+    return CourseProgressRead(
+        course_id=course_id,
+        total_lessons=total_lessons,
+        completed_lessons=completed_lessons,
+        completion_percent=completion_percent,
+    )
