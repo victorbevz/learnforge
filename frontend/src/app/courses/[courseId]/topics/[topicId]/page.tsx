@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import CreateLessonForm from "@/components/create-lesson-form";
+import TopicManagement from "@/components/topic-management";
 
 import { apiFetch } from "@/lib/api";
 
@@ -122,6 +123,12 @@ export default async function TopicPage({
             {topic.title}
           </h1>
         </header>
+        <TopicManagement
+            courseId={topic.course_id}
+            topicId={topic.id}
+            title={topic.title}
+            position={topic.position}
+        />
         <CreateLessonForm
             courseId={topic.course_id}
             topicId={topic.id}
