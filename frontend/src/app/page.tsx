@@ -116,9 +116,10 @@ export default async function HomePage({
           ) : (
             <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {visibleCourses.map((course) => (
-                <article
+                <Link
                   key={course.id}
-                  className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900 p-6"
+                  href={`/courses/${course.id}`}
+                  className="block min-w-0 rounded-2xl border border-slate-800 bg-slate-900 p-6 transition hover:border-indigo-400 hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-indigo-400"
                 >
                   <h3 className="break-words text-xl font-semibold">
                     {course.title}
@@ -127,7 +128,7 @@ export default async function HomePage({
                   <p className="mt-3 line-clamp-3 whitespace-pre-wrap break-words text-sm leading-6 text-slate-400">
                     {course.description || "No description yet."}
                   </p>
-                </article>
+                </Link>
               ))}
             </div>
           )}
