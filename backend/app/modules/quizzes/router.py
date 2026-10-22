@@ -7,6 +7,7 @@ from app.db.session import get_db
 from app.modules.lessons.router import OwnedLesson
 from app.modules.quizzes import service
 from app.modules.quizzes.schemas import QuizCreate, QuizRead
+from app.modules.quizzes.schemas import QuizResult, QuizSubmit
 
 
 router = APIRouter(
@@ -48,3 +49,26 @@ def get_quiz(
         )
 
     return quiz
+
+@router.post("/submit", response_model=QuizResult)
+def submit_quiz(
+    data: QuizSubmit,
+    lesson: OwnedLesson,
+    db: DatabaseSession,
+):
+    """Check submitted answers for an accessible lesson quiz."""
+    try:
+        result = service.submit_quiz(db, lesson.id, data)
+    except service.InvalidQuizAnswersError as error:
+        raise HTTPException(
+            status_code=422,
+            detail=str(error),
+        ) from error
+
+    if result is None:
+        raise HTTPException(
+            status_code=404,
+            detail="This lesson has no quiz yet",
+        )
+
+    return result

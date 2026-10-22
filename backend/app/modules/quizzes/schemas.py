@@ -99,3 +99,56 @@ class QuizRead(BaseModel):
     lesson_id: int
     title: str
     questions: list[QuizQuestionRead]
+
+
+class QuizAnswerSubmit(BaseModel):
+    question_id: int = Field(
+        gt=0,
+        le=2147483647,
+        strict=True,
+    )
+    option_id: int = Field(
+        gt=0,
+        le=2147483647,
+        strict=True,
+    )
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class QuizSubmit(BaseModel):
+    answers: list[QuizAnswerSubmit] = Field(
+        min_length=1,
+        max_length=50,
+    )
+
+    model_config = ConfigDict(extra="forbid")
+
+    @model_validator(mode="after")
+    def validate_unique_questions(self) -> Self:
+        """Reject multiple answers for the same question."""
+        question_ids = [
+            answer.question_id for answer in self.answers
+        ]
+
+        if len(question_ids) != len(set(question_ids)):
+            raise ValueError(
+                "Each question must have exactly one submitted answer"
+            )
+
+        return self
+
+
+class QuizAnswerResult(BaseModel):
+    question_id: int
+    selected_option_id: int
+    correct_option_id: int
+    is_correct: bool
+
+
+class QuizResult(BaseModel):
+    quiz_id: int
+    total_questions: int
+    correct_answers: int
+    score_percent: float
+    results: list[QuizAnswerResult]
