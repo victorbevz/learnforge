@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import LessonProgressButton from "@/components/lesson-progress-button";
 import { apiFetch } from "@/lib/api";
 import LessonManagement from "@/components/lesson-management";
+import LessonQuiz from "@/components/lesson-quiz";
 
 type Lesson = {
   id: number;
@@ -146,6 +147,7 @@ export default async function LessonPage({ params }: PageProps) {
             </p>
           )}
         </article>
+        <LessonQuiz lessonPath={lessonPath} />
       </section>
     </main>
   );
