@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import CreateTopicForm from "@/components/create-topic-form";
 import CourseManagement from "@/components/course-management";
+import LearningProgress from "@/components/learning-progress";
 
 import { apiFetch } from "@/lib/api";
 
@@ -119,6 +120,7 @@ export default async function CoursePage({
             {course.description || "No description yet."}
           </p>
         </header>
+        <LearningProgress progressPath={`${basePath}/progress`} />
         <CourseManagement
             courseId={course.id}
             title={course.title}

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import CreateLessonForm from "@/components/create-lesson-form";
 import TopicManagement from "@/components/topic-management";
+import LearningProgress from "@/components/learning-progress";
 
 import { apiFetch } from "@/lib/api";
 
@@ -123,6 +124,7 @@ export default async function TopicPage({
             {topic.title}
           </h1>
         </header>
+        <LearningProgress progressPath={`${topicPath}/progress`} />
         <TopicManagement
             courseId={topic.course_id}
             topicId={topic.id}
