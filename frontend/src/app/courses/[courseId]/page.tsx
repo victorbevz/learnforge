@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import CreateTopicForm from "@/components/create-topic-form";
+import CourseManagement from "@/components/course-management";
 
 import { apiFetch } from "@/lib/api";
 
@@ -118,6 +119,11 @@ export default async function CoursePage({
             {course.description || "No description yet."}
           </p>
         </header>
+        <CourseManagement
+            courseId={course.id}
+            title={course.title}
+            description={course.description}
+        />
         <CreateTopicForm courseId={course.id} />
         <section className="mt-10">
           <h2 className="text-2xl font-semibold">Topics</h2>
