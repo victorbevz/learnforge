@@ -9,6 +9,10 @@ from app.modules.topics import service
 from app.modules.topics.schemas import TopicCreate, TopicRead, TopicUpdate
 from app.modules.topics.dependencies import OwnedTopic
 
+from app.core.dependencies import get_current_user
+from app.modules.auth.models import User
+from app.modules.topics.schemas import TopicProgressRead
+
 
 router = APIRouter(
     prefix="/courses/{course_id}/topics",
@@ -16,6 +20,7 @@ router = APIRouter(
 )
 
 DatabaseSession = Annotated[Session, Depends(get_db)]
+CurrentUser = Annotated[User, Depends(get_current_user)]
 
 @router.post("", response_model=TopicRead, status_code=201)
 def create_topic(
@@ -62,3 +67,15 @@ def delete_topic(
     """Delete a topic from the user's course."""
     service.delete_topic(db, topic)
     return Response(status_code=204)
+
+@router.get(
+    "/{topic_id}/progress",
+    response_model=TopicProgressRead,
+)
+def get_topic_progress(
+    topic: OwnedTopic,
+    db: DatabaseSession,
+    user: CurrentUser,
+):
+    """Return learning progress for the authenticated user's topic."""
+    return service.get_topic_progress(db, topic.id, user.id)

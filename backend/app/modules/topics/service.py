@@ -1,8 +1,12 @@
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.modules.topics.models import Topic
 from app.modules.topics.schemas import TopicCreate, TopicUpdate
+
+from app.modules.lessons.lesson_progress import LessonProgress
+from app.modules.lessons.models import Lesson
+from app.modules.topics.schemas import TopicProgressRead
 
 def create_topic(
         db: Session,
@@ -69,3 +73,38 @@ def delete_topic(db: Session, topic: Topic) -> None:
     """Delete the supplied topic."""
     db.delete(topic)
     db.commit()
+
+def get_topic_progress(
+    db: Session,
+    topic_id: int,
+    user_id: int,
+) -> TopicProgressRead:
+    """Count all lessons and the user's completed lessons in a topic."""
+    query = (
+        select(
+            func.count(Lesson.id).label("total_lessons"),
+            func.count(LessonProgress.id).label("completed_lessons"),
+        )
+        .select_from(Lesson)
+        .outerjoin(
+            LessonProgress,
+            (LessonProgress.lesson_id == Lesson.id)
+            & (LessonProgress.user_id == user_id),
+        )
+        .where(Lesson.topic_id == topic_id)
+    )
+
+    total_lessons, completed_lessons = db.execute(query).one()
+
+    completion_percent = (
+        round(completed_lessons / total_lessons * 100, 1)
+        if total_lessons > 0
+        else 0.0
+    )
+
+    return TopicProgressRead(
+        topic_id=topic_id,
+        total_lessons=total_lessons,
+        completed_lessons=completed_lessons,
+        completion_percent=completion_percent,
+    )

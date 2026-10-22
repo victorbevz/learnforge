@@ -9,6 +9,7 @@ from app.modules.auth.models import User
 from app.modules.courses import service
 from app.modules.courses.schemas import CourseCreate, CourseRead, CourseUpdate
 from app.modules.courses.dependencies import OwnedCourse
+from app.modules.courses.schemas import CourseProgressRead
 
 router = APIRouter(prefix="/courses", tags=["Courses"])
 
@@ -60,3 +61,15 @@ def delete_course(
     """Delete a course belonging to the authenticated user."""
     service.delete_course(db, course)
     return Response(status_code=204)
+
+@router.get(
+    "/{course_id}/progress",
+    response_model=CourseProgressRead,
+)
+def get_course_progress(
+    course: OwnedCourse,
+    db: DatabaseSession,
+    user: CurrentUser,
+):
+    """Return learning progress for the authenticated user's course."""
+    return service.get_course_progress(db, course.id, user.id)

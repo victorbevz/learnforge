@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-
+import LearningProgress from "@/components/learning-progress";
 import CreateCourseForm from "@/components/create-course-form";
 import LogoutButton from "@/components/logout-button";
 import { apiFetch } from "@/lib/api";
@@ -128,6 +128,10 @@ export default async function HomePage({
                   <p className="mt-3 line-clamp-3 whitespace-pre-wrap break-words text-sm leading-6 text-slate-400">
                     {course.description || "No description yet."}
                   </p>
+                  <LearningProgress
+                    progressPath={`/courses/${course.id}/progress`}
+                    compact
+                  />
                 </Link>
               ))}
             </div>
