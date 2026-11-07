@@ -147,6 +147,13 @@ export default async function LessonPage({ params }: PageProps) {
             </p>
           )}
         </article>
+        <Link
+          href={`${lessonPath}/quiz/attempts`}
+          prefetch={false}
+          className="mt-6 inline-block text-sm text-indigo-400 hover:underline"
+        >
+          Quiz attempt history
+        </Link>
         <LessonQuiz lessonPath={lessonPath} />
       </section>
     </main>

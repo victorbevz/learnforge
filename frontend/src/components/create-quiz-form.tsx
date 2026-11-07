@@ -10,24 +10,43 @@ import {
 
 type CreateQuizFormProps = {
   lessonPath: string;
+  initialQuiz?: QuizForEdit;
 };
+
+type QuizDraft = {
+  title: string;
+  questions: {
+    text: string;
+    options: { text: string; is_correct: boolean }[];
+  }[];
+};
+
+export type QuizForEdit = QuizDraft & { id: number };
 
 type QuestionDraft = {
   id: number;
   optionIds: number[];
+  nextOptionId: number;
 };
 
 export default function CreateQuizForm({
   lessonPath,
+  initialQuiz,
 }: CreateQuizFormProps) {
   const router = useRouter();
-  const nextQuestionId = useRef(2);
+  const nextQuestionId = useRef((initialQuiz?.questions.length ?? 1) + 1);
 
-  const [questions, setQuestions] = useState<QuestionDraft[]>([
-    { id: 1, optionIds: [1, 2] },
-  ]);
+  const [questions, setQuestions] = useState<QuestionDraft[]>(
+    () =>
+      initialQuiz?.questions.map((question, index) => ({
+        id: index + 1,
+        optionIds: question.options.map((_, optionIndex) => optionIndex + 1),
+        nextOptionId: question.options.length + 1,
+      })) ?? [{ id: 1, optionIds: [1, 2], nextOptionId: 3 }],
+  );
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const isBusy = isLoading || isPending;
@@ -39,7 +58,7 @@ export default function CreateQuizForm({
     setQuestions((current) =>
       current.length >= 50
         ? current
-        : [...current, { id, optionIds: [1, 2] }],
+        : [...current, { id, optionIds: [1, 2], nextOptionId: 3 }],
     );
   }
 
@@ -63,10 +82,8 @@ export default function CreateQuizForm({
 
         return {
           ...question,
-          optionIds: [
-            ...question.optionIds,
-            Math.max(...question.optionIds) + 1,
-          ],
+          optionIds: [...question.optionIds, question.nextOptionId],
+          nextOptionId: question.nextOptionId + 1,
         };
       }),
     );
@@ -129,15 +146,30 @@ export default function CreateQuizForm({
       return;
     }
 
+    await saveQuiz(initialQuiz ? "PUT" : "POST", body);
+  }
+
+  async function saveQuiz(
+    method: "POST" | "PUT" | "DELETE",
+    body?: QuizDraft,
+  ) {
     setError("");
     setIsLoading(true);
 
     try {
-      const response = await fetch(`${lessonPath}/quiz/manage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      const endpoint = `${lessonPath}/quiz/manage`;
+      const response = await fetch(
+        initialQuiz ? `${endpoint}?quizId=${initialQuiz.id}` : endpoint,
+        {
+          method,
+          ...(body
+            ? {
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body),
+              }
+            : {}),
+        },
+      );
 
       if (response.status === 401) {
         startTransition(() => {
@@ -156,12 +188,15 @@ export default function CreateQuizForm({
             "detail" in data &&
             typeof data.detail === "string"
             ? data.detail
-            : "Unable to create the quiz",
+            : "Unable to save changes to the quiz",
         );
         return;
       }
 
       startTransition(() => {
+        if (initialQuiz) {
+          router.replace(lessonPath);
+        }
         router.refresh();
       });
     } catch {
@@ -179,14 +214,19 @@ export default function CreateQuizForm({
 
   return (
     <section className="mt-8 rounded-2xl border border-slate-800 bg-slate-900 p-6">
-      <h2 className="text-xl font-semibold">Create a quiz</h2>
+      <h2 className="text-xl font-semibold">
+        {initialQuiz ? "Edit quiz" : "Create a quiz"}
+      </h2>
 
       <p className="mt-2 text-sm text-slate-400">
         Add questions and select one correct answer for each.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-5">
-        <fieldset disabled={isBusy} className="min-w-0 space-y-6">
+        <fieldset
+          disabled={isBusy || confirmDelete}
+          className="min-w-0 space-y-6"
+        >
           <div>
             <label htmlFor="quiz-title" className="mb-2 block text-sm">
               Quiz title
@@ -194,6 +234,7 @@ export default function CreateQuizForm({
             <input
               id="quiz-title"
               name="title"
+              defaultValue={initialQuiz?.title}
               maxLength={200}
               required
               className={inputClassName}
@@ -218,6 +259,7 @@ export default function CreateQuizForm({
               <textarea
                 id={`question-${question.id}`}
                 name={`question-${question.id}`}
+                defaultValue={initialQuiz?.questions[question.id - 1]?.text}
                 rows={3}
                 maxLength={5000}
                 required
@@ -239,6 +281,9 @@ export default function CreateQuizForm({
                     <input
                       id={`option-${question.id}-${optionId}`}
                       name={`option-${question.id}-${optionId}`}
+                      defaultValue={
+                        initialQuiz?.questions[question.id - 1]?.options[optionId - 1]?.text
+                      }
                       maxLength={1000}
                       required
                       className={inputClassName}
@@ -250,6 +295,9 @@ export default function CreateQuizForm({
                           type="radio"
                           name={`correct-${question.id}`}
                           value={optionId}
+                          defaultChecked={
+                            initialQuiz?.questions[question.id - 1]?.options[optionId - 1]?.is_correct
+                          }
                           required
                           className="accent-indigo-500"
                         />
@@ -302,22 +350,67 @@ export default function CreateQuizForm({
             Add question
           </button>
 
-          {error && (
-            <p role="alert" className="text-sm text-red-400">
-              {error}
-            </p>
-          )}
-
           <div>
             <button
               type="submit"
               className="rounded-lg bg-indigo-500 px-5 py-3 font-semibold hover:bg-indigo-400 disabled:opacity-50"
             >
-              {isBusy ? "Creating…" : "Create quiz"}
+              {isBusy ? "Saving…" : initialQuiz ? "Save changes" : "Create quiz"}
             </button>
           </div>
         </fieldset>
       </form>
+
+      {error && (
+        <p role="alert" className="mt-4 text-sm text-red-400">
+          {error}
+        </p>
+      )}
+
+      {initialQuiz && (
+        <div className="mt-6 border-t border-slate-800 pt-5">
+          {confirmDelete ? (
+            <>
+              <p className="text-sm text-slate-300">
+                Delete this quiz? Previous attempts will remain in your history.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  onClick={() => void saveQuiz("DELETE")}
+                  className="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold hover:bg-red-600 disabled:opacity-50"
+                >
+                  {isBusy ? "Deleting…" : "Confirm deletion"}
+                </button>
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  onClick={() => {
+                    setConfirmDelete(false);
+                    setError("");
+                  }}
+                  className={buttonClassName}
+                >
+                  Cancel
+                </button>
+              </div>
+            </>
+          ) : (
+            <button
+              type="button"
+              disabled={isBusy}
+              onClick={() => {
+                setError("");
+                setConfirmDelete(true);
+              }}
+              className={`${buttonClassName} text-red-400`}
+            >
+              Delete quiz
+            </button>
+          )}
+        </div>
+      )}
     </section>
   );
 }

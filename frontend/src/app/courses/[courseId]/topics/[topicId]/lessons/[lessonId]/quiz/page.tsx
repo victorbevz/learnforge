@@ -62,12 +62,18 @@ export default async function QuizPage({ params }: PageProps) {
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-12 text-slate-100">
       <section className="mx-auto max-w-3xl">
-        <Link
-          href={lessonPath}
-          className="text-sm text-indigo-400 hover:underline"
-        >
-          Back to lesson
-        </Link>
+        <nav aria-label="Quiz navigation" className="flex flex-wrap gap-5">
+          <Link href={lessonPath} className="text-sm text-indigo-400 hover:underline">
+            Back to lesson
+          </Link>
+          <Link
+            href={`${quizPath}/attempts`}
+            prefetch={false}
+            className="text-sm text-indigo-400 hover:underline"
+          >
+            Attempt history
+          </Link>
+        </nav>
 
         <header className="mt-8">
           <p className="text-sm font-semibold tracking-widest text-indigo-400">

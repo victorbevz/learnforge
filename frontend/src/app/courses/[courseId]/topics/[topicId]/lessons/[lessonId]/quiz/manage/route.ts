@@ -15,9 +15,10 @@ function isValidId(value: string): boolean {
   return /^[1-9]\d*$/.test(value) && Number(value) <= 2147483647;
 }
 
-export async function POST(
+async function manageQuiz(
   request: NextRequest,
   context: RouteContext,
+  method: "POST" | "PUT" | "DELETE",
 ) {
   if (!isAllowedOrigin(request.headers.get("origin"))) {
     return NextResponse.json(
@@ -39,57 +40,64 @@ export async function POST(
     );
   }
 
-  let body: unknown;
-
-  try {
-    body = await request.json();
-  } catch {
+  const quizId = request.nextUrl.searchParams.get("quizId");
+  if (method !== "POST" && (quizId === null || !isValidId(quizId))) {
     return NextResponse.json(
-      { detail: "Invalid JSON" },
+      { detail: "A valid quiz ID is required" },
       { status: 400 },
     );
   }
 
-  if (
-    typeof body !== "object" ||
-    body === null ||
-    !("title" in body) ||
-    typeof body.title !== "string" ||
-    !("questions" in body) ||
-    !Array.isArray(body.questions)
-  ) {
-    return NextResponse.json(
-      { detail: "Quiz title and questions are required" },
-      { status: 400 },
-    );
+  let payload: string | undefined;
+  if (method !== "DELETE") {
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ detail: "Invalid JSON" }, { status: 400 });
+    }
+
+    if (
+      typeof body !== "object" ||
+      body === null ||
+      !("title" in body) ||
+      typeof body.title !== "string" ||
+      !("questions" in body) ||
+      !Array.isArray(body.questions)
+    ) {
+      return NextResponse.json(
+        { detail: "Quiz title and questions are required" },
+        { status: 400 },
+      );
+    }
+
+    const title = body.title.trim();
+    if (title.length === 0 || title.length > 200) {
+      return NextResponse.json(
+        { detail: "Title must be 1–200 characters long" },
+        { status: 400 },
+      );
+    }
+
+    if (body.questions.length < 1 || body.questions.length > 50) {
+      return NextResponse.json(
+        { detail: "A quiz must contain between 1 and 50 questions" },
+        { status: 400 },
+      );
+    }
+
+    payload = JSON.stringify({ title, questions: body.questions });
   }
 
-  const title = body.title.trim();
-
-  if (title.length === 0 || title.length > 200) {
-    return NextResponse.json(
-      { detail: "Title must be 1–200 characters long" },
-      { status: 400 },
-    );
-  }
-
-  if (body.questions.length < 1 || body.questions.length > 50) {
-    return NextResponse.json(
-      { detail: "A quiz must contain between 1 and 50 questions" },
-      { status: 400 },
-    );
-  }
-
+  const quizPath = `/courses/${courseId}/topics/${topicId}/lessons/${lessonId}/quiz`;
   try {
     const response = await apiFetch(
-      `/courses/${courseId}/topics/${topicId}/lessons/${lessonId}/quiz`,
+      method === "POST" ? quizPath : `${quizPath}/${quizId}`,
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title,
-          questions: body.questions,
-        }),
+        method,
+        ...(payload === undefined
+          ? {}
+          : { headers: { "Content-Type": "application/json" }, body: payload }),
       },
     );
 
@@ -98,12 +106,12 @@ export async function POST(
         response.status === 401
           ? "Please sign in again"
           : response.status === 404
-            ? "Lesson not found"
+            ? method === "POST" ? "Lesson not found" : "Quiz not found"
             : response.status === 409
               ? "This lesson already has a quiz"
               : response.status === 422
                 ? "Check your questions: each needs 2–6 non-empty options and exactly one correct answer. Question text must be at most 5,000 characters and options at most 1,000."
-                : "Unable to create the quiz";
+                : "Unable to save changes to the quiz";
 
       return NextResponse.json(
         { detail },
@@ -113,7 +121,7 @@ export async function POST(
 
     return NextResponse.json(
       { success: true },
-      { status: 201 },
+      { status: method === "POST" ? 201 : 200 },
     );
   } catch {
     return NextResponse.json(
@@ -121,4 +129,16 @@ export async function POST(
       { status: 502 },
     );
   }
+}
+
+export function POST(request: NextRequest, context: RouteContext) {
+  return manageQuiz(request, context, "POST");
+}
+
+export function PUT(request: NextRequest, context: RouteContext) {
+  return manageQuiz(request, context, "PUT");
+}
+
+export function DELETE(request: NextRequest, context: RouteContext) {
+  return manageQuiz(request, context, "DELETE");
 }
