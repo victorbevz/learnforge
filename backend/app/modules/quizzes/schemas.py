@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated
 
 from pydantic import (
@@ -152,3 +153,29 @@ class QuizResult(BaseModel):
     correct_answers: int
     score_percent: float
     results: list[QuizAnswerResult]
+
+
+class QuizEditRead(QuizCreate):
+    id: int
+
+
+class QuizAttemptAnswer(BaseModel):
+    question: str
+    selected_answer: str
+    correct_answer: str
+    is_correct: bool
+
+
+class QuizAttemptSummary(BaseModel):
+    id: int
+    quiz_title: str
+    total_questions: int
+    correct_answers: int
+    score_percent: float
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class QuizAttemptRead(QuizAttemptSummary):
+    answers: list[QuizAttemptAnswer]
