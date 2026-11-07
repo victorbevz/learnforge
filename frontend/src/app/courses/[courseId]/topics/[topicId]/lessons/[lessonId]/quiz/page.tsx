@@ -1,4 +1,5 @@
 import Link from "next/link";
+import WorkspaceFrame from "@/components/workspace-frame";
 import { notFound, redirect } from "next/navigation";
 
 import QuizPlayer, { type QuizData } from "@/components/quiz-player";
@@ -60,7 +61,7 @@ export default async function QuizPage({ params }: PageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 px-6 py-12 text-slate-100">
+    <WorkspaceFrame className="px-6 py-8 text-slate-100 sm:py-12">
       <section className="mx-auto max-w-3xl">
         <nav aria-label="Quiz navigation" className="flex flex-wrap gap-5">
           <Link href={lessonPath} className="text-sm text-indigo-400 hover:underline">
@@ -95,7 +96,7 @@ export default async function QuizPage({ params }: PageProps) {
           quizPath={quizPath}
         />
       </section>
-    </main>
+    </WorkspaceFrame>
   );
 }
 

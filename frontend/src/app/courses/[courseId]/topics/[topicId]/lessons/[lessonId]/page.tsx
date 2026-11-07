@@ -1,4 +1,5 @@
 import Link from "next/link";
+import WorkspaceFrame from "@/components/workspace-frame";
 import { notFound, redirect } from "next/navigation";
 
 import LessonProgressButton from "@/components/lesson-progress-button";
@@ -81,7 +82,7 @@ export default async function LessonPage({ params }: PageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 px-6 py-12 text-slate-100">
+    <WorkspaceFrame className="px-6 py-8 text-slate-100 sm:py-12">
       <section className="mx-auto max-w-3xl">
         <Link
           href={topicPath}
@@ -156,7 +157,7 @@ export default async function LessonPage({ params }: PageProps) {
         </Link>
         <LessonQuiz lessonPath={lessonPath} />
       </section>
-    </main>
+    </WorkspaceFrame>
   );
 }
 

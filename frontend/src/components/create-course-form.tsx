@@ -1,10 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 
 export default function CreateCourseForm() {
   const router = useRouter();
+  const disclosureRef = useRef<HTMLDetailsElement>(null);
+  const summaryRef = useRef<HTMLElement>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -48,6 +50,10 @@ export default function CreateCourseForm() {
       }
 
       form.reset();
+      if (disclosureRef.current) {
+        disclosureRef.current.open = false;
+        summaryRef.current?.focus();
+      }
       router.replace("/");
       router.refresh();
     } catch {
@@ -58,13 +64,23 @@ export default function CreateCourseForm() {
   }
 
   const inputClassName =
-    "w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 outline-none focus:border-indigo-400";
+    "w-full rounded border border-[var(--workspace-field)] bg-[var(--workspace-paper)] px-3 py-2.5";
 
   return (
-    <section className="mt-8 rounded-2xl border border-slate-800 bg-slate-900 p-6">
-      <h2 className="text-xl font-semibold">Create a course</h2>
+    <details ref={disclosureRef} className="mb-5 sm:mb-0">
+      <summary
+        ref={summaryRef}
+        className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded bg-[var(--workspace-accent)] px-4 text-sm font-semibold text-[#211a0f] hover:bg-[var(--workspace-accent-hover)] sm:absolute sm:top-2 sm:right-0"
+      >
+        <span aria-hidden="true" className="text-lg leading-none">+</span>
+        New course
+      </summary>
 
-      <form onSubmit={handleSubmit} className="mt-5 space-y-4">
+      <form
+        onSubmit={handleSubmit}
+        className="mt-4 space-y-4 rounded-md border border-[var(--workspace-line)] bg-[var(--workspace-surface)] p-4 sm:mt-0 sm:mb-6 sm:p-6"
+      >
+        <h2 className="text-lg font-semibold">Create a course</h2>
         <div>
           <label htmlFor="title" className="mb-2 block text-sm">
             Title
@@ -95,7 +111,7 @@ export default function CreateCourseForm() {
         </div>
 
         {error && (
-          <p role="alert" className="text-sm text-red-400">
+          <p role="alert" className="text-sm text-[var(--workspace-error)]">
             {error}
           </p>
         )}
@@ -103,11 +119,11 @@ export default function CreateCourseForm() {
         <button
           type="submit"
           disabled={isLoading}
-          className="rounded-lg bg-indigo-500 px-5 py-3 font-semibold transition hover:bg-indigo-400 disabled:opacity-50"
+          className="min-h-11 rounded bg-[var(--workspace-accent)] px-4 text-sm font-semibold text-[#211a0f] hover:bg-[var(--workspace-accent-hover)] disabled:opacity-50"
         >
           {isLoading ? "Creating…" : "Create course"}
         </button>
       </form>
-    </section>
+    </details>
   );
 }

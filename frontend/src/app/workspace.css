@@ -1,0 +1,108 @@
+.night-desk {
+  --workspace-paper: #1c1f1d;
+  --workspace-surface: #282c28;
+  --workspace-ink: #f5f1e8;
+  --workspace-muted: #bdbfb6;
+  --workspace-line: #454942;
+  --workspace-field: #82867a;
+  --workspace-accent: #d6ac62;
+  --workspace-accent-hover: #edc67d;
+  --workspace-error: #f3a59a;
+
+  /* Map the existing form and status styles to the workspace palette. */
+  --color-slate-950: var(--workspace-paper);
+  --color-slate-900: var(--workspace-surface);
+  --color-slate-800: #3a3e37;
+  --color-slate-700: var(--workspace-field);
+  --color-slate-400: var(--workspace-muted);
+  --color-slate-300: #dedbd2;
+  --color-slate-100: var(--workspace-ink);
+  --color-indigo-400: var(--workspace-accent-hover);
+  --color-indigo-500: var(--workspace-accent);
+  --color-red-400: var(--workspace-error);
+  --color-emerald-400: #a8c69c;
+
+  color-scheme: dark;
+  background: var(--workspace-paper);
+  color: var(--workspace-ink);
+  font-family: var(--font-geist-sans), Arial, sans-serif;
+}
+
+.night-desk :is(button, a).bg-indigo-500 {
+  color: #211a0f;
+}
+
+.night-desk :is(a, button, input, textarea, summary):focus-visible {
+  outline: 2px solid var(--workspace-accent);
+  outline-offset: 3px;
+}
+
+.desk-frame {
+  display: grid;
+  min-height: 100vh;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.desk-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--workspace-line);
+  background: #191b19;
+  padding: 0.75rem 1.25rem;
+}
+
+.desk-brand {
+  font: 600 1.25rem Georgia, serif;
+  color: var(--workspace-ink);
+}
+
+.desk-courses {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 2.75rem;
+  padding: 0 0.75rem;
+  border-radius: 0.375rem;
+  background: #393126;
+  color: var(--workspace-accent-hover);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.desk-courses:hover {
+  background: #483c2b;
+}
+
+@media (min-width: 64rem) {
+  .desk-frame {
+    grid-template-columns: 12.5rem minmax(0, 1fr);
+  }
+
+  .desk-nav {
+    position: sticky;
+    top: 0;
+    align-self: start;
+    min-height: 100vh;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 2rem;
+    border-right: 1px solid var(--workspace-line);
+    border-bottom: 0;
+    padding: 1.5rem 1rem;
+  }
+
+  .desk-brand {
+    padding-left: 0.75rem;
+  }
+}
+
+.learning-workspace summary {
+  list-style: none;
+}
+
+.learning-workspace summary::-webkit-details-marker {
+  display: none;
+}
