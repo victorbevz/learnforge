@@ -1,4 +1,5 @@
 import Link from "next/link";
+import WorkspaceFrame from "@/components/workspace-frame";
 import { notFound, redirect } from "next/navigation";
 import CreateLessonForm from "@/components/create-lesson-form";
 import TopicManagement from "@/components/topic-management";
@@ -106,7 +107,7 @@ export default async function TopicPage({
   const visibleLessons = lessons.slice(0, PAGE_SIZE);
 
   return (
-    <main className="min-h-screen bg-slate-950 px-6 py-12 text-slate-100">
+    <WorkspaceFrame className="px-6 py-8 text-slate-100 sm:py-12">
       <section className="mx-auto max-w-5xl">
         <Link
           href={coursePath}
@@ -199,7 +200,7 @@ export default async function TopicPage({
           )}
         </section>
       </section>
-    </main>
+    </WorkspaceFrame>
   );
 }
 

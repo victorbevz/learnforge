@@ -37,13 +37,13 @@ export default function LogoutButton() {
         type="button"
         onClick={handleLogout}
         disabled={isLoading}
-        className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-medium transition hover:bg-slate-800 disabled:opacity-50"
+        className="min-h-11 rounded px-2 text-sm font-medium text-[var(--workspace-accent)] hover:bg-[var(--workspace-surface)] hover:underline disabled:opacity-50"
       >
         {isLoading ? "Signing out…" : "Sign out"}
       </button>
 
       {error && (
-        <p role="alert" className="mt-2 text-sm text-red-400">
+        <p role="alert" className="mt-2 text-sm text-[var(--workspace-error)]">
           {error}
         </p>
       )}

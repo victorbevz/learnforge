@@ -1,4 +1,5 @@
 import Link from "next/link";
+import WorkspaceFrame from "@/components/workspace-frame";
 import { notFound, redirect } from "next/navigation";
 
 import { apiFetch } from "@/lib/api";
@@ -78,7 +79,7 @@ export default async function QuizAttemptsPage({ params, searchParams }: PagePro
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 px-6 py-12 text-slate-100">
+    <WorkspaceFrame className="px-6 py-8 text-slate-100 sm:py-12">
       <section className="mx-auto max-w-3xl">
         <Link
           href={attempt ? pagePath(page) : lessonPath}
@@ -161,7 +162,7 @@ export default async function QuizAttemptsPage({ params, searchParams }: PagePro
           </p>
         )}
       </section>
-    </main>
+    </WorkspaceFrame>
   );
 }
 
