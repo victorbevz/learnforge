@@ -20,3 +20,7 @@ out/
 .vscode/
 Thumbs.db
 .DS_Store
+
+# Local agent skills
+/.agents/
+/skills-lock.json
