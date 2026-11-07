@@ -1,13 +1,22 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response
 from sqlalchemy.orm import Session
 
+from app.core.dependencies import get_current_user
 from app.db.session import get_db
+from app.modules.auth.models import User
 from app.modules.lessons.router import OwnedLesson
 from app.modules.quizzes import service
-from app.modules.quizzes.schemas import QuizCreate, QuizRead
-from app.modules.quizzes.schemas import QuizResult, QuizSubmit
+from app.modules.quizzes.schemas import (
+    QuizAttemptRead,
+    QuizAttemptSummary,
+    QuizCreate,
+    QuizEditRead,
+    QuizRead,
+    QuizResult,
+    QuizSubmit,
+)
 
 
 router = APIRouter(
@@ -16,6 +25,8 @@ router = APIRouter(
 )
 
 DatabaseSession = Annotated[Session, Depends(get_db)]
+CurrentUser = Annotated[User, Depends(get_current_user)]
+ResourceId = Annotated[int, Path(gt=0, le=2147483647)]
 
 
 @router.post("", response_model=QuizRead, status_code=201)
@@ -50,15 +61,44 @@ def get_quiz(
 
     return quiz
 
+
+@router.get("/manage", response_model=QuizEditRead)
+def get_quiz_for_edit(lesson: OwnedLesson, db: DatabaseSession):
+    """Return the quiz and its correct answers to the lesson owner."""
+    quiz = service.get_quiz_for_edit(db, lesson.id)
+    if quiz is None:
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    return quiz
+
+
+@router.put("/{quiz_id}", status_code=204)
+def update_quiz(
+    quiz_id: ResourceId, data: QuizCreate, lesson: OwnedLesson, db: DatabaseSession,
+) -> Response:
+    """Replace the quiz attached to the owned lesson."""
+    if not service.update_quiz(db, lesson.id, quiz_id, data):
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    return Response(status_code=204)
+
+
+@router.delete("/{quiz_id}", status_code=204)
+def delete_quiz(quiz_id: ResourceId, lesson: OwnedLesson, db: DatabaseSession) -> Response:
+    """Delete the quiz attached to the owned lesson."""
+    if not service.delete_quiz(db, lesson.id, quiz_id):
+        raise HTTPException(status_code=404, detail="Quiz not found")
+    return Response(status_code=204)
+
+
 @router.post("/submit", response_model=QuizResult)
 def submit_quiz(
     data: QuizSubmit,
     lesson: OwnedLesson,
+    user: CurrentUser,
     db: DatabaseSession,
 ):
     """Check submitted answers for an accessible lesson quiz."""
     try:
-        result = service.submit_quiz(db, lesson.id, data)
+        result = service.submit_quiz(db, lesson.id, user.id, data)
     except service.InvalidQuizAnswersError as error:
         raise HTTPException(
             status_code=422,
@@ -72,3 +112,26 @@ def submit_quiz(
         )
 
     return result
+
+
+@router.get("/attempts", response_model=list[QuizAttemptSummary])
+def list_attempts(
+    lesson: OwnedLesson,
+    user: CurrentUser,
+    db: DatabaseSession,
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0, le=2147483647)] = 0,
+):
+    """List the current user's attempts for the owned lesson."""
+    return service.list_attempts(db, lesson.id, user.id, limit, offset)
+
+
+@router.get("/attempts/{attempt_id}", response_model=QuizAttemptRead)
+def get_attempt(
+    attempt_id: ResourceId, lesson: OwnedLesson, user: CurrentUser, db: DatabaseSession,
+):
+    """Return a saved answer review to the user who submitted it."""
+    attempt = service.get_attempt(db, lesson.id, user.id, attempt_id)
+    if attempt is None:
+        raise HTTPException(status_code=404, detail="Attempt not found")
+    return attempt

@@ -12,7 +12,7 @@ from app.modules.courses.models import Course
 from app.modules.topics.models import Topic
 from app.modules.lessons.models import Lesson
 from app.modules.lessons.lesson_progress import LessonProgress
-from app.modules.quizzes.models import Quiz, QuizQuestion, QuizOption
+from app.modules.quizzes.models import Quiz, QuizAttempt, QuizQuestion, QuizOption
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

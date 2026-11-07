@@ -59,12 +59,21 @@ export default async function LessonQuiz({
         {quiz.questions.length} questions
       </p>
 
-      <Link
-        href={`${lessonPath}/quiz`}
-        className="mt-5 inline-block rounded-lg bg-indigo-500 px-5 py-3 font-semibold hover:bg-indigo-400"
-      >
-        Take quiz
-      </Link>
+      <div className="mt-5 flex flex-wrap gap-3">
+        <Link
+          href={`${lessonPath}/quiz`}
+          className="rounded-lg bg-indigo-500 px-5 py-3 font-semibold hover:bg-indigo-400"
+        >
+          Take quiz
+        </Link>
+        <Link
+          href={`${lessonPath}/quiz/edit`}
+          prefetch={false}
+          className="rounded-lg border border-slate-700 px-5 py-3 font-semibold hover:bg-slate-800"
+        >
+          Edit quiz
+        </Link>
+      </div>
     </section>
   );
 }
