@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { AuthSubmitButton } from "@/components/auth-submit-button";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -124,13 +125,7 @@ export default function RegisterPage() {
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full rounded-lg bg-indigo-500 px-4 py-3 font-semibold transition hover:bg-indigo-400 disabled:cursor-wait disabled:opacity-50"
-          >
-            {isLoading ? "Creating account…" : "Create account"}
-          </button>
+          <AuthSubmitButton label="Create account" pendingLabel="Creating account…" isSubmitting={isLoading} />
         </form>
 
         <p className="mt-6 text-center text-sm text-slate-400">

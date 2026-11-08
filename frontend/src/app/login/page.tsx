@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { AuthSubmitButton } from "@/components/auth-submit-button";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -99,13 +100,7 @@ export default function LoginPage() {
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full rounded-lg bg-indigo-500 px-4 py-3 font-semibold transition hover:bg-indigo-400 disabled:cursor-wait disabled:opacity-50"
-          >
-            {isLoading ? "Signing in…" : "Sign in"}
-          </button>
+          <AuthSubmitButton label="Sign in" pendingLabel="Signing in…" isSubmitting={isLoading} />
         </form>
         <p className="mt-6 text-center text-sm text-slate-400">
           Don&apos;t have an account?{" "}
