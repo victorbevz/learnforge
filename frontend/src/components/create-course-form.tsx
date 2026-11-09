@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useRef, useState, type FormEvent } from "react";
 
+import GenerateCourseForm from "@/components/generate-course-form";
+
 export default function CreateCourseForm() {
   const router = useRouter();
   const disclosureRef = useRef<HTMLDetailsElement>(null);
@@ -124,6 +126,7 @@ export default function CreateCourseForm() {
           {isLoading ? "Creating…" : "Create course"}
         </button>
       </form>
+      <GenerateCourseForm />
     </details>
   );
 }

@@ -1,5 +1,7 @@
 from typing import Annotated
 
+from app.core.config import settings
+
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response
 from sqlalchemy.orm import Session
 
@@ -28,6 +30,19 @@ DatabaseSession = Annotated[Session, Depends(get_db)]
 CurrentUser = Annotated[User, Depends(get_current_user)]
 ResourceId = Annotated[int, Path(gt=0, le=2147483647)]
 
+@router.post("/generate", response_model=QuizCreate)
+def generate_quiz(lesson: OwnedLesson) -> QuizCreate:
+    content = lesson.content.strip()
+    if not content:
+        raise HTTPException(status_code=422, detail="Lesson content is empty")
+
+    if settings.groq_api_key is None:
+        raise HTTPException(status_code=503, detail="Quiz generation is not configured")
+
+    try:
+        return service.generate_quiz_draft(content, settings.groq_api_key.get_secret_value())
+    except service.QuizGenerationError as error:
+        raise HTTPException(status_code=502, detail=str(error)) from error
 
 @router.post("", response_model=QuizRead, status_code=201)
 def create_quiz(

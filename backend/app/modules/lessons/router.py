@@ -3,10 +3,13 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
+from app.core.groq import GroqGenerationError
 from app.db.session import get_db
+from app.modules.courses.dependencies import OwnedCourse
 from app.modules.lessons import service
 from app.modules.lessons.models import Lesson
-from app.modules.lessons.schemas import LessonCreate, LessonRead, LessonUpdate
+from app.modules.lessons.schemas import LessonCreate, LessonDraft, LessonRead, LessonUpdate
 from app.modules.topics.dependencies import OwnedTopic
 from app.core.dependencies import get_current_user
 from app.modules.auth.models import User
@@ -64,6 +67,23 @@ def list_lessons(
 def get_lesson(lesson: OwnedLesson):
     """Return a lesson from the user's topic."""
     return lesson
+
+
+@router.post("/{lesson_id}/generate", response_model=LessonDraft)
+def generate_lesson(
+    lesson: OwnedLesson, topic: OwnedTopic, course: OwnedCourse
+) -> LessonDraft:
+    if settings.groq_api_key is None:
+        raise HTTPException(status_code=503, detail="Lesson generation is not configured")
+
+    try:
+        return service.generate_lesson_draft(
+            course.title, topic.title, lesson.title, settings.groq_api_key.get_secret_value()
+        )
+    except GroqGenerationError as error:
+        raise HTTPException(
+            status_code=502, detail="Could not generate a valid lesson draft"
+        ) from error
 
 
 @router.patch("/{lesson_id}", response_model=LessonRead)

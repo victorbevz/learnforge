@@ -45,11 +45,17 @@ export default function CreateQuizForm({
       })) ?? [{ id: 1, optionIds: [1, 2], nextOptionId: 3 }],
   );
   const [error, setError] = useState("");
+  const [generated, setGenerated] = useState<{
+    draft: QuizDraft;
+    revision: number;
+  }>();
+  const [isGenerating, setIsGenerating] = useState(false);
+  const quizValues = generated?.draft ?? initialQuiz;
   const [isLoading, setIsLoading] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const isBusy = isLoading || isPending;
+  const isBusy = isLoading || isPending || isGenerating;
 
   function addQuestion() {
     const id = nextQuestionId.current;
@@ -109,6 +115,48 @@ export default function CreateQuizForm({
     );
   }
 
+  async function handleGenerate(form: HTMLFormElement) {
+    const hasDraft = Array.from(new FormData(form).values()).some(
+      (value) => typeof value === "string" && value.trim() !== "",
+    );
+
+    if (hasDraft && !window.confirm("Replace the current quiz draft?")) {
+      return;
+    }
+
+    setError("");
+    setIsGenerating(true);
+
+    try {
+      const response = await fetch(`${lessonPath}/quiz/generate`, {
+        method: "POST",
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data?.detail ?? "Unable to generate a quiz");
+        return;
+      }
+
+      const draft: QuizDraft = data;
+      setQuestions(
+        draft.questions.map((question, index) => ({
+          id: index + 1,
+          optionIds: question.options.map((_, optionIndex) => optionIndex + 1),
+          nextOptionId: question.options.length + 1,
+        })),
+      );
+      nextQuestionId.current = draft.questions.length + 1;
+      setGenerated((current) => ({
+        draft,
+        revision: (current?.revision ?? 0) + 1,
+      }));
+    } catch {
+      setError("Unable to generate a quiz. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  }
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -221,12 +269,24 @@ export default function CreateQuizForm({
       <p className="mt-2 text-sm text-slate-400">
         Add questions and select one correct answer for each.
       </p>
-
-      <form onSubmit={handleSubmit} className="mt-5">
+      
+      <form key={generated?.revision ?? 0} onSubmit={handleSubmit} className="mt-5">
         <fieldset
           disabled={isBusy || confirmDelete}
           className="min-w-0 space-y-6"
         >
+          {!initialQuiz && (
+            <button
+              type="button"
+              className={buttonClassName}
+              onClick={(event) => {
+                const form = event.currentTarget.form;
+                if (form) void handleGenerate(form);
+              }}
+            >
+              {isGenerating ? "Generating…" : "Generate quiz"}
+            </button>
+          )}
           <div>
             <label htmlFor="quiz-title" className="mb-2 block text-sm">
               Quiz title
@@ -234,7 +294,7 @@ export default function CreateQuizForm({
             <input
               id="quiz-title"
               name="title"
-              defaultValue={initialQuiz?.title}
+              defaultValue={quizValues?.title}
               maxLength={200}
               required
               className={inputClassName}
@@ -259,7 +319,7 @@ export default function CreateQuizForm({
               <textarea
                 id={`question-${question.id}`}
                 name={`question-${question.id}`}
-                defaultValue={initialQuiz?.questions[question.id - 1]?.text}
+                defaultValue={quizValues?.questions[question.id - 1]?.text}
                 rows={3}
                 maxLength={5000}
                 required
@@ -282,7 +342,7 @@ export default function CreateQuizForm({
                       id={`option-${question.id}-${optionId}`}
                       name={`option-${question.id}-${optionId}`}
                       defaultValue={
-                        initialQuiz?.questions[question.id - 1]?.options[optionId - 1]?.text
+                        quizValues?.questions[question.id - 1]?.options[optionId - 1]?.text
                       }
                       maxLength={1000}
                       required
@@ -296,7 +356,7 @@ export default function CreateQuizForm({
                           name={`correct-${question.id}`}
                           value={optionId}
                           defaultChecked={
-                            initialQuiz?.questions[question.id - 1]?.options[optionId - 1]?.is_correct
+                            quizValues?.questions[question.id - 1]?.options[optionId - 1]?.is_correct
                           }
                           required
                           className="accent-indigo-500"
