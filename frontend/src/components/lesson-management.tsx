@@ -23,10 +23,60 @@ export default function LessonManagement({
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [draftContent, setDraftContent] = useState(content);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
 
-  const isBusy = isLoading || isPending;
+  const isBusy = isLoading || isGenerating || isPending;
+
+  async function handleGenerate() {
+    if (isBusy) return;
+    if (draftContent.trim() && !window.confirm("Replace the text in this editor?")) {
+      return;
+    }
+
+    setError("");
+    setIsGenerating(true);
+
+    try {
+      const response = await fetch(`${lessonPath}/generate`, { method: "POST" });
+      if (response.status === 401) {
+        startTransition(() => router.replace("/login"));
+        return;
+      }
+
+      const data: unknown = await response.json();
+      if (!response.ok) {
+        setError(
+          typeof data === "object" &&
+          data !== null &&
+          "detail" in data &&
+          typeof data.detail === "string"
+            ? data.detail
+            : "Unable to generate a lesson",
+        );
+        return;
+      }
+
+      if (
+        typeof data !== "object" ||
+        data === null ||
+        !("content" in data) ||
+        typeof data.content !== "string" ||
+        !data.content.trim()
+      ) {
+        setError("No lesson text was generated. Please try again.");
+        return;
+      }
+
+      setDraftContent(data.content);
+    } catch {
+      setError("Unable to generate a lesson. Please try again.");
+    } finally {
+      setIsGenerating(false);
+    }
+  }
 
   async function submitRequest(
     method: "PATCH" | "DELETE",
@@ -111,6 +161,7 @@ export default function LessonManagement({
           type="button"
           disabled={isBusy}
           onClick={() => {
+            if (!isEditing) setDraftContent(content);
             setIsEditing(!isEditing);
             setIsDeleting(false);
             setError("");
@@ -167,12 +218,21 @@ export default function LessonManagement({
             <textarea
               id="edit-lesson-content"
               name="content"
-              defaultValue={content}
+              value={draftContent}
+              onChange={(event) => setDraftContent(event.target.value)}
               rows={12}
               maxLength={50_000}
               disabled={isBusy}
               className={inputClassName}
             />
+            <button
+              type="button"
+              onClick={handleGenerate}
+              disabled={isBusy}
+              className="mt-2 rounded-lg border border-slate-700 px-4 py-2 hover:bg-slate-800 disabled:opacity-50"
+            >
+              {isGenerating ? "Generating…" : "Generate lesson"}
+            </button>
           </div>
 
           <div>
@@ -204,7 +264,7 @@ export default function LessonManagement({
             disabled={isBusy}
             className="rounded-lg bg-indigo-500 px-5 py-3 font-semibold hover:bg-indigo-400 disabled:opacity-50"
           >
-            {isBusy ? "Saving…" : "Save changes"}
+            {isLoading || isPending ? "Saving…" : "Save changes"}
           </button>
         </form>
       )}

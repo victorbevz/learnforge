@@ -3,13 +3,21 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.dependencies import get_current_user
+from app.core.groq import GroqGenerationError
 from app.db.session import get_db
 from app.modules.auth.models import User
 from app.modules.courses import service
-from app.modules.courses.schemas import CourseCreate, CourseRead, CourseUpdate
 from app.modules.courses.dependencies import OwnedCourse
-from app.modules.courses.schemas import CourseProgressRead
+from app.modules.courses.schemas import (
+    CourseCreate,
+    CourseDraft,
+    CourseGenerateRequest,
+    CourseProgressRead,
+    CourseRead,
+    CourseUpdate,
+)
 
 router = APIRouter(prefix="/courses", tags=["Courses"])
 
@@ -24,6 +32,26 @@ def create_course(
 ):
     """Create a personal course."""
     return service.create_course(db, user.id, data)
+
+
+@router.post("/generate", response_model=CourseDraft)
+def generate_course(data: CourseGenerateRequest, user: CurrentUser) -> CourseDraft:
+    if settings.groq_api_key is None:
+        raise HTTPException(status_code=503, detail="Course generation is not configured")
+
+    try:
+        return service.generate_course_draft(
+            data.prompt, settings.groq_api_key.get_secret_value()
+        )
+    except GroqGenerationError as error:
+        raise HTTPException(
+            status_code=502, detail="Could not generate a valid course draft"
+        ) from error
+
+
+@router.post("/draft", response_model=CourseRead, status_code=201)
+def save_course_draft(data: CourseDraft, db: DatabaseSession, user: CurrentUser):
+    return service.create_course_from_draft(db, user.id, data)
 
 
 @router.get("", response_model=list[CourseRead])

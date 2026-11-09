@@ -56,3 +56,9 @@ class LessonRead(BaseModel):
     position: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class LessonDraft(BaseModel):
+    content: str = Field(min_length=1, max_length=50000)
+
+    model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
