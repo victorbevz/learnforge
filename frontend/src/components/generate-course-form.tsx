@@ -6,7 +6,11 @@ import { useState, useTransition, type FormEvent } from "react";
 type CourseDraft = {
   title: string;
   description: string | null;
-  topics: { title: string; lessons: { title: string }[] }[];
+  topics: {
+    title: string;
+    description: string | null;
+    lessons: { title: string; content: string }[];
+  }[];
 };
 
 const inputClassName =
@@ -17,6 +21,7 @@ const buttonClassName =
 export default function GenerateCourseForm() {
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
+  const [source, setSource] = useState<"idea" | "pdf">("idea");
   const [draft, setDraft] = useState<CourseDraft | null>(null);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -29,14 +34,24 @@ export default function GenerateCourseForm() {
 
     const fields = new FormData(event.currentTarget);
     const text = (name: string) => String(fields.get(name) ?? "").trim();
+    const upload = !draft && source === "pdf";
+    if (upload) {
+      const file = fields.get("file");
+      if (!(file instanceof File) || file.size === 0 || file.size > 3 * 1024 * 1024) {
+        setError("Select a PDF file that is 3 MB or smaller.");
+        return;
+      }
+    }
     const body = draft
       ? {
           title: text("title"),
           description: text("description") || null,
           topics: draft.topics.map((topic, topicIndex) => ({
             title: text(`topic-${topicIndex}`),
+            description: text(`topic-description-${topicIndex}`) || null,
             lessons: topic.lessons.map((_, lessonIndex) => ({
               title: text(`lesson-${topicIndex}-${lessonIndex}`),
+              content: text(`lesson-content-${topicIndex}-${lessonIndex}`),
             })),
           })),
         }
@@ -46,10 +61,17 @@ export default function GenerateCourseForm() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(draft ? "/courses/draft" : "/courses/generate", {
+      const endpoint = draft
+        ? "/courses/draft"
+        : upload ? "/courses/generate-from-pdf" : "/courses/generate";
+      const response = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        ...(upload
+          ? { body: fields }
+          : {
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            }),
       });
 
       if (response.status === 401) {
@@ -64,8 +86,8 @@ export default function GenerateCourseForm() {
           typeof data?.detail === "string"
             ? data.detail
             : draft
-              ? "Check the course, topic, and lesson titles before saving."
-              : "Enter a course idea between 1 and 1,000 characters.",
+              ? "Check the course fields before saving."
+              : upload ? "Unable to generate a course from this PDF." : "Enter a course idea between 1 and 1,000 characters.",
         );
         return;
       }
@@ -93,7 +115,7 @@ export default function GenerateCourseForm() {
       <fieldset key={draft ? "draft" : "prompt"} disabled={isBusy} className="mt-4 min-w-0 space-y-4">
         {draft ? (
           <>
-            <p className="text-sm">Review and edit the outline before creating the course.</p>
+            <p className="text-sm">Review and edit the draft before creating the course.</p>
             <label className="block space-y-2 text-sm">
               <span>Course title</span>
               <input name="title" defaultValue={draft.title} maxLength={200} required className={inputClassName} />
@@ -121,40 +143,94 @@ export default function GenerateCourseForm() {
                     className={inputClassName}
                   />
                 </label>
+                <label className="block space-y-2 text-sm">
+                  <span>Topic description</span>
+                  <textarea
+                    name={`topic-description-${topicIndex}`}
+                    defaultValue={topic.description ?? ""}
+                    maxLength={10_000}
+                    rows={2}
+                    className={inputClassName}
+                  />
+                </label>
                 {topic.lessons.map((lesson, lessonIndex) => (
-                  <label key={lessonIndex} className="block space-y-2 text-sm">
-                    <span>Lesson {lessonIndex + 1} title</span>
-                    <input
-                      name={`lesson-${topicIndex}-${lessonIndex}`}
-                      defaultValue={lesson.title}
-                      maxLength={200}
-                      required
-                      className={inputClassName}
-                    />
-                  </label>
+                  <div key={lessonIndex} className="space-y-2 border-t border-[var(--workspace-line)] pt-3">
+                    <label className="block space-y-2 text-sm">
+                      <span>Lesson {lessonIndex + 1} title</span>
+                      <input
+                        name={`lesson-${topicIndex}-${lessonIndex}`}
+                        defaultValue={lesson.title}
+                        maxLength={200}
+                        required
+                        className={inputClassName}
+                      />
+                    </label>
+                    <label className="block space-y-2 text-sm">
+                      <span>Lesson content</span>
+                      <textarea
+                        name={`lesson-content-${topicIndex}-${lessonIndex}`}
+                        defaultValue={lesson.content}
+                        maxLength={50_000}
+                        rows={5}
+                        className={inputClassName}
+                      />
+                    </label>
+                  </div>
                 ))}
               </fieldset>
             ))}
           </>
         ) : (
-          <label className="block space-y-2 text-sm">
-            <span>Course idea</span>
-            <textarea
-              value={prompt}
-              onChange={(event) => setPrompt(event.target.value)}
-              placeholder="Python for beginners"
-              maxLength={1000}
-              rows={2}
-              required
-              className={inputClassName}
-            />
-          </label>
+          <>
+            <label className="block space-y-2 text-sm">
+              <span>Course source</span>
+              <select
+                value={source}
+                onChange={(event) => {
+                  setSource(event.target.value === "pdf" ? "pdf" : "idea");
+                  setError("");
+                }}
+                className={inputClassName}
+              >
+                <option value="idea">Course idea</option>
+                <option value="pdf">PDF document</option>
+              </select>
+            </label>
+            {source === "pdf" ? (
+              <label className="block space-y-2 text-sm">
+                <span>PDF file</span>
+                <input
+                  type="file"
+                  name="file"
+                  accept=".pdf,application/pdf"
+                  required
+                  className={inputClassName}
+                />
+                <span className="block text-xs">
+                  Up to 3 MB and 20 pages. The first 6 KB of selectable text is sent to Groq.
+                </span>
+              </label>
+            ) : (
+              <label className="block space-y-2 text-sm">
+                <span>Course idea</span>
+                <textarea
+                  value={prompt}
+                  onChange={(event) => setPrompt(event.target.value)}
+                  placeholder="Python for beginners"
+                  maxLength={1000}
+                  rows={2}
+                  required
+                  className={inputClassName}
+                />
+              </label>
+            )}
+          </>
         )}
         <div className="flex flex-wrap items-center gap-3">
           <button type="submit" className={buttonClassName}>
             {draft
               ? isBusy ? "Creating…" : "Create course from draft"
-              : isBusy ? "Generating…" : "Generate outline"}
+              : isBusy ? "Generating…" : "Generate course draft"}
           </button>
           {draft && (
             <button

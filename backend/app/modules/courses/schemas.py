@@ -49,12 +49,14 @@ class CourseGenerateRequest(BaseModel):
 
 class CourseDraftLesson(BaseModel):
     title: LessonTitle
+    content: str = Field(default="", max_length=50000)
 
     model_config = ConfigDict(extra="forbid")
 
 
 class CourseDraftTopic(BaseModel):
     title: str = Field(min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=10000)
     lessons: list[CourseDraftLesson] = Field(min_length=1, max_length=5)
 
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
@@ -62,3 +64,19 @@ class CourseDraftTopic(BaseModel):
 
 class CourseDraft(CourseCreate):
     topics: list[CourseDraftTopic] = Field(min_length=1, max_length=5)
+
+
+class GeneratedCourseLesson(CourseDraftLesson):
+    content: str = Field(min_length=1, max_length=50000)
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+
+class GeneratedCourseTopic(CourseDraftTopic):
+    description: str = Field(min_length=1, max_length=10000)
+    lessons: list[GeneratedCourseLesson] = Field(min_length=1, max_length=5)
+
+
+class GeneratedCourseDraft(CourseDraft):
+    description: str = Field(min_length=1, max_length=10000)
+    topics: list[GeneratedCourseTopic] = Field(min_length=1, max_length=5)

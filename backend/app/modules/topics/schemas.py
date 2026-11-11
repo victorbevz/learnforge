@@ -36,6 +36,7 @@ class TopicRead(BaseModel):
     id: int
     course_id: int
     title: str
+    description: str | None = None
     position: int
 
     model_config = ConfigDict(from_attributes=True)

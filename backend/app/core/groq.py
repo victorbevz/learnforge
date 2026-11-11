@@ -30,10 +30,13 @@ def generate_draft(
     schema: type[Draft],
     *,
     text_field: str | None = None,
+    enforce_json: bool = True,
 ) -> Draft:
     payload = {
         "model": "openai/gpt-oss-20b",
-        "response_format": {"type": "text" if text_field else "json_object"},
+        "response_format": {
+            "type": "json_object" if enforce_json and text_field is None else "text",
+        },
         "messages": [
             {"role": "system", "content": instructions},
             {"role": "user", "content": prompt},
@@ -57,6 +60,12 @@ def generate_draft(
         content = result["choices"][0]["message"]["content"]
         if text_field is not None:
             return schema.model_validate({text_field: content})
+        if not enforce_json and isinstance(content, str):
+            content = content.strip()
+            if content.startswith("```") and content.endswith("```"):
+                header, _, body = content.partition("\n")
+                if header.rstrip().lower() in {"```", "```json"}:
+                    content = body[:-3].strip()
         return schema.model_validate_json(content)
     except (OSError, ValueError, KeyError, IndexError, TypeError) as error:
         logging.getLogger(__name__).warning(
