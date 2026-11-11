@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response
+from fastapi import APIRouter, Depends, File, HTTPException, Path, Query, Response, UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -10,6 +10,7 @@ from app.db.session import get_db
 from app.modules.auth.models import User
 from app.modules.courses import service
 from app.modules.courses.dependencies import OwnedCourse
+from app.modules.courses.pdf_source import MAX_PDF_BYTES, PdfSourceError, extract_pdf_source
 from app.modules.courses.schemas import (
     CourseCreate,
     CourseDraft,
@@ -34,19 +35,39 @@ def create_course(
     return service.create_course(db, user.id, data)
 
 
-@router.post("/generate", response_model=CourseDraft)
-def generate_course(data: CourseGenerateRequest, user: CurrentUser) -> CourseDraft:
+def _generate_draft(prompt: str, *, from_pdf: bool = False) -> CourseDraft:
     if settings.groq_api_key is None:
         raise HTTPException(status_code=503, detail="Course generation is not configured")
 
     try:
         return service.generate_course_draft(
-            data.prompt, settings.groq_api_key.get_secret_value()
+            prompt, settings.groq_api_key.get_secret_value(), from_pdf=from_pdf
         )
     except GroqGenerationError as error:
         raise HTTPException(
             status_code=502, detail="Could not generate a valid course draft"
         ) from error
+
+
+@router.post("/generate", response_model=CourseDraft)
+def generate_course(data: CourseGenerateRequest, user: CurrentUser) -> CourseDraft:
+    return _generate_draft(data.prompt)
+
+
+@router.post("/generate-from-pdf", response_model=CourseDraft)
+def generate_course_from_pdf(
+    user: CurrentUser, file: Annotated[UploadFile, File()]
+) -> CourseDraft:
+    data = file.file.read(MAX_PDF_BYTES + 1)
+    if len(data) > MAX_PDF_BYTES:
+        raise HTTPException(status_code=413, detail="PDF files must be 3 MB or smaller")
+
+    try:
+        source = extract_pdf_source(data)
+    except PdfSourceError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+    return _generate_draft(source, from_pdf=True)
 
 
 @router.post("/draft", response_model=CourseRead, status_code=201)

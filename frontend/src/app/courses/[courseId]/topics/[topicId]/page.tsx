@@ -11,6 +11,7 @@ type Topic = {
   id: number;
   course_id: number;
   title: string;
+  description: string | null;
   position: number;
 };
 
@@ -124,6 +125,11 @@ export default async function TopicPage({
           <h1 className="mt-3 break-words text-3xl font-bold">
             {topic.title}
           </h1>
+          {topic.description && (
+            <p className="mt-3 whitespace-pre-wrap break-words text-slate-300">
+              {topic.description}
+            </p>
+          )}
         </header>
         <LearningProgress progressPath={`${topicPath}/progress`} />
         <TopicManagement
